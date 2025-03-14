@@ -9,7 +9,7 @@ import os
 parent_dir = os.path.abspath(os.path.join(os.getcwd()))
 sys.path.append(parent_dir)
 
-def alifold_alignment(alignment):
+def alifold_alignment(alignment, m):
     """
     Predicts the structure of a consensus RNA alignment using ViennaRNA's Alifold
     Arguments:
@@ -24,7 +24,7 @@ def alifold_alignment(alignment):
     md = RNA.md()
     # optionally one could change some parameters
     # md.temperature = 25.0 # 25 Deg Celcius
-    # md.dangles = 1 # keep default 2 for compatibility with partition folding
+    md.dangles = m # keep default 2 for compatibility with partition folding
     # create a fold compound
     fc = RNA.fold_compound(alignment, md)
     # predict the  "Alifold" Minmum Free Energy and the corresponding secondary structure

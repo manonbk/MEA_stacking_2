@@ -9,7 +9,7 @@ parent_dir = os.path.abspath(os.path.join(os.getcwd()))
 sys.path.append(parent_dir)
 
 from modules.nussinov import *
-from RNA_structure import *
+from modules.RNA_structure import *
 
 ############################## DEFINING COST FUNCTIONS ###############################################
 
@@ -106,14 +106,18 @@ def initcostMEA(list_of_bpp):
 def MEA(alignment, gamma=2,m=2):
     print("Building consensus structure of : ")
     print(alignment)
-    print("Using the simple MEA with parameter" + str(gamma))
+    print("Using the simple MEA with parameter gamma = " + str(gamma))
     print("...")
     list_of_bpp, list_of_struc=list_of_bp_proba_and_struc(alignment)
     print(list_of_struc)
     cost_fun=constfunctionMEA(gamma, list_of_bpp)
     init_cost=initcostMEA(list_of_bpp)
     nussMat=nussinov_matrix(list_of_struc, cost_fun, init_cost, m)
-    #print(nussMat)
+    """
+    print("Nussinov Matrix:")
+    for lign in nussMat:
+        print(lign)
+    """
     base_pairs= nussinov_traceback(list_of_struc,nussMat, cost_fun, m)
     return (dot_bracket_string(len(list_of_struc[0]),base_pairs,0))
 
