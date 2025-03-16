@@ -73,6 +73,7 @@ def dot_bracket_to_pairs(dot_bracket):
                 pairs.add((j, i))
     return pairs
 
+
 def adjusted_mcc(ref_structure, pred_structure):
     """Computes an adjusted MCC where extra compatible pairs are ignored."""
     ref_pairs = dot_bracket_to_pairs(ref_structure)
@@ -136,3 +137,28 @@ def plot_similarity_matrix(matrix, method_names):
 method_names = ["MEA_stacking", "MEA", "Alifold"]
 #sim_matrix = similarity_matrix(example_alignement)
 #plot_similarity_matrix(sim_matrix, method_names)
+
+import numpy as np
+
+def evaluate_structure(reference, predicted):
+    """
+    Compute Sensitivity, Specificity, PPV, and F-score
+    between a reference and predicted RNA secondary structure.
+    """
+
+    ref_pairs = dot_bracket_to_pairs(reference)
+    pred_pairs = dot_bracket_to_pairs(predicted)
+
+    TP = len(ref_pairs & pred_pairs)  # True Positives
+    FP = sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
+    FN = len(ref_pairs - pred_pairs)  # False Negatives
+    TN = 0  # True Negatives are not relevant in base-pairing evaluation
+
+    sensitivity = TP / (TP + FN) if (TP + FN) > 0 else 0
+    specificity = TP / (TP + FP) if (TP + FP) > 0 else 0
+    PPV = TP / (TP + FP) if (TP + FP) > 0 else 0
+    F_score = 2 * (PPV * sensitivity) / (PPV + sensitivity) if (PPV + sensitivity) > 0 else 0
+
+    return sensitivity, specificity, PPV, F_score
+
+
