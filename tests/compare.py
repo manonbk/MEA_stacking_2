@@ -124,19 +124,6 @@ def is_compatible(pair, ref_pairs):
 
 
 
-# Example structures in dot-bracket notation
-ref_structure = "..((..)).."  # Reference: Base pairs (2,7) and (3,6)
-pred_structure1 = "..((..)).."  # Perfect match (should give MCC = 1)
-pred_structure2 = "..(....).."  # Missing one base pair (should lower MCC)
-pred_structure3 = "..((...))."  # Extra compatible base pair (should not decrease MCC)
-pred_structure4 = "..((..)).("  # Invalid closing (should decrease MCC)
-
-# Run tests
-print("Test 1 (Perfect Match):", adjusted_mcc(ref_structure, pred_structure1))
-print("Test 2 (Missing One Pair):", adjusted_mcc(ref_structure, pred_structure2))
-print("Test 3 (Extra Compatible Pair):", adjusted_mcc(ref_structure, pred_structure3))
-print("Test 4 (Invalid Pair):", adjusted_mcc(ref_structure, pred_structure4))
-
 
 
 #######end Madi's modif#####################################
@@ -183,7 +170,7 @@ def evaluate_structure(reference, predicted):
     TP = len(ref_pairs & pred_pairs)  # True Positives
     FP = sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
     FN = len(ref_pairs - pred_pairs)  # False Negatives
-    TN = len(ref_structure) * (len(ref_structure) - 1) / 2 - len(ref_pairs) - sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
+    TN = len(ref_pairs) * (len(ref_pairs) - 1) / 2 - len(ref_pairs) - sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
 
     print(TP,FP,FN, TN)
     sensitivity = TP / (TP + FN) if (TP + FN) > 0 else 0
