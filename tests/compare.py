@@ -9,7 +9,9 @@ import sys
 import os
 
 parent_dir = os.path.abspath(os.path.join(os.getcwd()))
+parent_dir = os.path.join(parent_dir, "MEA_stacking")
 sys.path.append(parent_dir)
+#print(parent_dir)
 
 from modules.RNA_structure import *
 from modules.simple_MEA import *
@@ -87,16 +89,30 @@ def adjusted_mcc(ref_structure, pred_structure):
 
     # False Positives (FP): Predicted pairs that contradict the reference
     FP = sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
+    print(TP,FN,FP)
 
     # True Negatives (TN): Not explicitly counted in base pair evaluations
+    TN = len(ref_structure) * (len(ref_structure) - 1) / 2 - len(ref_pairs) - sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
+
 
     # Compute MCC
-    MCC = matthews_corrcoef(
-        [1] * (TP + FN) + [0] * (FP),  # True labels: 1 for ref pairs, 0 for conflicting
-        [1] * TP + [0] * FN + [1] * FP  # Pred labels: 1 for predicted, 0 otherwise
-    )
+    if FN+FP==0 :
+        return 1
+    if TP+TN==0:
+        return -1
+    if TP+FP==0:
+        return 0
+    if TP+FN == 0:
+        return "encore not folded"
+    if TN+FP == 0:
+        return "trop folded"
+    if TN+FN==0:
+        return "vraiment vraiment trop la"
     
-    return MCC
+    return (TP*TN-FP*FN)/np.sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+
+
+
 
 def is_compatible(pair, ref_pairs):
     """Checks if a predicted pair can be added to the reference without contradiction."""
@@ -105,6 +121,21 @@ def is_compatible(pair, ref_pairs):
         if (i < ri < j < rj) or (ri < i < rj < j):  # Crossing pairs = contradiction
             return False
     return True  # If it doesn't contradict, we ignore it
+
+
+
+# Example structures in dot-bracket notation
+ref_structure = "..((..)).."  # Reference: Base pairs (2,7) and (3,6)
+pred_structure1 = "..((..)).."  # Perfect match (should give MCC = 1)
+pred_structure2 = "..(....).."  # Missing one base pair (should lower MCC)
+pred_structure3 = "..((...))."  # Extra compatible base pair (should not decrease MCC)
+pred_structure4 = "..((..)).("  # Invalid closing (should decrease MCC)
+
+# Run tests
+print("Test 1 (Perfect Match):", adjusted_mcc(ref_structure, pred_structure1))
+print("Test 2 (Missing One Pair):", adjusted_mcc(ref_structure, pred_structure2))
+print("Test 3 (Extra Compatible Pair):", adjusted_mcc(ref_structure, pred_structure3))
+print("Test 4 (Invalid Pair):", adjusted_mcc(ref_structure, pred_structure4))
 
 
 
@@ -152,64 +183,14 @@ def evaluate_structure(reference, predicted):
     TP = len(ref_pairs & pred_pairs)  # True Positives
     FP = sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
     FN = len(ref_pairs - pred_pairs)  # False Negatives
-    TN = 0  # True Negatives are not relevant in base-pairing evaluation
+    TN = len(ref_structure) * (len(ref_structure) - 1) / 2 - len(ref_pairs) - sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
 
+    print(TP,FP,FN, TN)
     sensitivity = TP / (TP + FN) if (TP + FN) > 0 else 0
-    specificity = TP / (TP + FP) if (TP + FP) > 0 else 0
+    specificity = TN / (TN + FP) if (TP + FP) > 0 else 0
     PPV = TP / (TP + FP) if (TP + FP) > 0 else 0
     F_score = 2 * (PPV * sensitivity) / (PPV + sensitivity) if (PPV + sensitivity) > 0 else 0
 
     return sensitivity, specificity, PPV, F_score
 
 
-
-
-##############DIAGNOSTIC#######################################
-def diag_adjusted_mcc(ref_structure, pred_structure):
-    """Computes an adjusted MCC where extra compatible pairs are ignored."""
-    ref_pairs = dot_bracket_to_pairs(ref_structure)
-    pred_pairs = dot_bracket_to_pairs(pred_structure)
-
-    # True Positives (TP): Correctly predicted base pairs
-    TP = len(ref_pairs & pred_pairs)
-
-    # False Negatives (FN): Missing reference pairs
-    FN = len(ref_pairs - pred_pairs)
-
-    # False Positives (FP): Predicted pairs that contradict the reference
-    FP = sum(1 for pair in pred_pairs if pair not in ref_pairs and not is_compatible(pair, ref_pairs))
-
-    # True Negatives (TN): Not explicitly counted in base pair evaluations
-    print(TP)
-    print(FN)
-    print(FP)
-    # Compute MCC
-    MCC = matthews_corrcoef(
-        [1] * (TP + FN) + [0] * (FP),  # True labels: 1 for ref pairs, 0 for conflicting
-        [1] * TP + [0] * FN + [1] * FP,  # Pred labels: 1 for predicted, 0 otherwise
-        labels=[0, 1]  # Ensure both 0 and 1 are present
-    )
-    
-    return MCC
-
-def is_compatible(pair, ref_pairs):
-    """Checks if a predicted pair can be added to the reference without contradiction."""
-    i, j = pair
-    for (ri, rj) in ref_pairs:
-        if (i < ri < j < rj) or (ri < i < rj < j):  # Crossing pairs = contradiction
-            return False
-    return True  # If it doesn't contradict, we ignore it
-
-
-# Example structures in dot-bracket notation
-ref_structure = "..((..)).."  # Reference: Base pairs (2,7) and (3,6)
-pred_structure1 = "..((..)).."  # Perfect match (should give MCC = 1)
-pred_structure2 = "..(....).."  # Missing one base pair (should lower MCC)
-pred_structure3 = "..((...))."  # Extra compatible base pair (should not decrease MCC)
-pred_structure4 = "..((..)).("  # Invalid closing (should decrease MCC)
-
-# Run tests
-print("Test 1 (Perfect Match):", diag_adjusted_mcc(ref_structure, pred_structure1))
-print("Test 2 (Missing One Pair):", diag_adjusted_mcc(ref_structure, pred_structure2))
-print("Test 3 (Extra Compatible Pair):", diag_adjusted_mcc(ref_structure, pred_structure3))
-print("Test 4 (Invalid Pair):", diag_adjusted_mcc(ref_structure, pred_structure4))
